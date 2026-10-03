@@ -6,7 +6,8 @@ Playground for the EPPING logo and colour schemes. Static, no build: `index.html
 Fonts come from Fontsource on jsdelivr and are outlined with opentype.js, so exported SVGs are paths.
 
 - Gallery: preset variants with IDs (G = G shapes, P = palettes, S = styles, F = fonts, W = weights), plus random sets.
-- Instagram: feed posts (4:5) + story (9:16) in the liked palettes (Sunset rave, Current, Gold rush) with a profile/grid preview; click a post for a full-size PNG. Built in `ig.js`.
+- Instagram: 9 feed posts (4:5) + 2 video stories (9:16) built on the user's photos, in the candidate palettes (Sunset rave, Current, Gold rush), with a profile/grid preview; photo look natural or palette duotone; click a post for a full-size PNG. Built in `ig.js`.
+- `media/` (git-ignored, local only): the user's photos and reels. The public site shows the posts without photos.
 - Site mockup: 2D stand-in for the eppingmusic.com tunnel, using the editor's logo + colours.
 - `glyphs-g.js`: alternative G outlines for Unbounded 800 (paper.js boolean ops on the font's G/O; generator not kept).
 - Editor: live controls, settings kept in the URL hash (Copy link to share), and SVG/PNG/icon export.

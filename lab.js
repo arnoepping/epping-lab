@@ -256,22 +256,39 @@ $('site-palette').onchange = (e) => { if (e.target.value !== '') Object.assign(s
 $('site-g').onchange = (e) => { state.g = e.target.value; syncForm(); drawSite(); };
 
 // ---------- instagram ----------
+// The user's photos/videos live in media/ (git-ignored: local only, never on the public lab site).
+const PHOTOS = ['crowd-street', 'crowd-lights', 'dj-point', 'dj-film', 'dj-film-wide', 'dj-varsity', 'duo-roof', 'dj-night', 'dj-roof-night', 'dj-roof-wide', 'dj-street', 'smoke'];
+let photoMap = null;
+async function photos() {
+  if (!photoMap) {
+    const ok = await Promise.all(PHOTOS.map((k) => fetch(`media/${k}.jpg`, { method: 'HEAD' }).then((r) => r.ok, () => false)));
+    photoMap = Object.fromEntries(PHOTOS.filter((k, i) => ok[i]).map((k) => [k, `media/${k}.jpg`]));
+  }
+  return photoMap;
+}
+// SVG drawn into a canvas can't load external files, so inline the photos before exporting.
+const dataUrl = (url) => fetch(url).then((r) => r.blob()).then((b) => new Promise((ok) => { const f = new FileReader(); f.onload = () => ok(f.result); f.readAsDataURL(b); }));
+async function inlinePhotos(svg) {
+  for (const url of new Set(svg.match(/media\/[\w-]+\.jpg/g) || [])) svg = svg.replaceAll(`"${url}"`, `"${await dataUrl(url)}"`);
+  return svg;
+}
+
 async function drawIg() {
-  $('ig-g').value = state.g;
-  const [logoFont, black, mono] = await Promise.all([loadFont(state.font, state.weight), loadFont('unbounded', 800), loadFont('space-grotesk', 500)]);
-  const F = { logo: logoFont, black, mono };
+  const [logoFont, black, mono, P] = await Promise.all([loadFont(state.font, state.weight), loadFont('unbounded', 800), loadFont('space-grotesk', 500), photos()]);
+  const F = { logo: logoFont, black, mono }, look = $('ig-look').value;
+  $('ig-nophotos').hidden = Object.keys(P).length > 0;
   $('ig-sets').innerHTML = '';
   for (const i of LIKED) {
-    const s = { ...state, ...pal(PALETTES[i]) }, key = `p${i}`, posts = instagram(F, s, key);
-    const letter = 'E', slugP = PALETTES[i][0].toLowerCase().replace(/\W+/g, '-');
+    const s = { ...state, ...pal(PALETTES[i]) }, key = `p${i}`, posts = instagram(F, s, key, P, look);
+    const slugP = PALETTES[i][0].toLowerCase().replace(/\W+/g, '-');
     const set = document.createElement('div');
     set.className = 'ig-set';
     set.innerHTML = `<h2>${PALETTES[i][0]}</h2><div class="ig-row">
       <div class="phone" style="background:${s.bg};color:${s.fg};--muted:${mix(s.bg, s.fg, 0.55)};--line:${mix(s.bg, s.fg, 0.15)}">
-        <div class="ig-head"><div class="ig-avatar" style="border-color:${s.b}">${mark(logoFont, s, letter)}</div>
+        <div class="ig-head"><div class="ig-avatar" style="border-color:${s.b}">${mark(logoFont, s, 'E')}</div>
           <div><b>eppingmusic</b><div class="ig-stats"><span><b>48</b> posts</span><span><b>2,140</b> followers</span><span><b>312</b> following</span></div></div></div>
         <div class="ig-bio"><b>EPPING</b><br>DJ &amp; party organiser · Amsterdam<br>Rave weddings · Private events · Epping Presents<br><span style="color:${s.a}">eppingmusic.com</span></div>
-        <div class="ig-hl">${['Weddings', 'Presents', 'Mixes'].map((t) => `<div><span style="border-color:${mix(s.bg, s.fg, 0.3)}">${mark(logoFont, s, letter)}</span>${t}</div>`).join('')}</div>
+        <div class="ig-hl">${[['Weddings', 'crowd-lights'], ['Presents', 'crowd-street'], ['Mixes', 'dj-film']].map(([t, k]) => `<div><span style="border-color:${mix(s.bg, s.fg, 0.3)}">${P[k] ? `<img src="${P[k]}" alt="">` : mark(logoFont, s, 'E')}</span>${t}</div>`).join('')}</div>
         <div class="ig-grid">${posts.filter((p) => p.h === 1350).map((p) => p.svg.replace('<svg ', '<svg preserveAspectRatio="xMidYMid slice" ')).join('')}</div>
       </div>
       <div class="ig-posts"></div></div>`;
@@ -280,15 +297,15 @@ async function drawIg() {
       const b = document.createElement('button');
       b.className = 'ig-post' + (p.h > 1350 ? ' story' : '');
       b.title = 'Download PNG';
-      b.innerHTML = `${p.svg}<span>${p.name} · ${p.w}×${p.h} · PNG ↓</span>`;
-      b.onclick = () => savePng(p.svg, p.w, `epping-${slugP}-${p.id}.png`);
+      const art = p.video && P[Object.keys(P)[0]] ? `<div class="reel"><video src="media/${p.video}" muted loop autoplay playsinline></video>${p.overlay}</div>` : p.svg;
+      b.innerHTML = `${art}<span>${p.name} · ${p.w}×${p.h} · PNG ↓</span>`;
+      b.onclick = async () => savePng(await inlinePhotos(p.svg), p.w, `epping-${slugP}-${p.id}.png`);
       list.append(b);
     }
     $('ig-sets').append(set);
   }
 }
-$('ig-g').innerHTML = Object.entries(G_NAMES).map(([k, n]) => `<option value="${k}">${n}</option>`).join('');
-$('ig-g').onchange = (e) => { state.g = e.target.value; syncForm(); drawIg(); };
+$('ig-look').onchange = drawIg;
 
 fillSelects();
 const fromHash = decode(location.hash.slice(1));

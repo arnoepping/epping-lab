@@ -110,9 +110,12 @@
     </section>
     <section id="ig" class="view" hidden>
       <div class="bar">
-        <p class="hint">Instagram mockups in the three liked palettes, using the Editor's logo settings. Click a post to download a PNG at full size.</p>
-        <div class="site-tools"><label>G <select id="ig-g"></select></label></div>
+        <p class="hint">Instagram mockups with your photos in the three candidate palettes. Click a post to download a full-size PNG.</p>
+        <div class="site-tools"><label>Photo look <select id="ig-look">
+          <option value="mixed">Mixed (per post)</option><option value="natural">All natural</option><option value="duo">All palette duotone</option>
+        </select></label></div>
       </div>
+      <p class="hint" id="ig-nophotos" hidden>Photos aren't on the public site (they stay private). Run the lab locally to see them: <code>python3 -m http.server</code> in the epping-lab folder.</p>
       <div id="ig-sets"></div>
     </section>
   </main>

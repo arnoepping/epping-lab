@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EPPING Logo Lab</title>
+  <link rel="stylesheet" href="lab.css">
+  <script type="module" src="lab.js"></script>
+</head>
+<body>
+  <header class="top">
+    <h1>EPPING <span>Logo Lab</span></h1>
+    <nav>
+      <button class="tab" data-tab="gallery" aria-pressed="true">Gallery</button>
+      <button class="tab" data-tab="editor" aria-pressed="false">Editor</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="gallery" class="view">
+      <div class="bar">
+        <p class="hint">Click a variant to tweak it in the Editor. Tell Claude the IDs you like (e.g. "P04, S07").</p>
+        <button id="shuffle">Shuffle random</button>
+      </div>
+      <div id="groups"></div>
+    </section>
+
+    <section id="editor" class="view" hidden>
+      <div class="stage">
+        <div id="preview" class="preview"></div>
+        <div class="minis">
+          <div id="mark" class="mini"></div>
+          <div id="small" class="mini wide"></div>
+          <div id="inverse" class="mini wide"></div>
+        </div>
+      </div>
+
+      <form id="controls" class="controls" autocomplete="off">
+        <fieldset>
+          <legend>Type</legend>
+          <label>Text <input name="text" maxlength="24"></label>
+          <label>Font <select name="font"></select></label>
+          <label>Weight <select name="weight"></select></label>
+          <label>Letter spacing <input name="spacing" type="range" min="-0.12" max="0.3" step="0.005"><output></output></label>
+          <label>Slant <input name="skew" type="range" min="-20" max="20" step="1"><output></output></label>
+        </fieldset>
+        <fieldset>
+          <legend>Effect</legend>
+          <label>Style <select name="fx"></select></label>
+          <label>Offset <input name="offset" type="range" min="0" max="15" step="0.5"><output></output></label>
+          <label>Angle <input name="angle" type="range" min="-180" max="180" step="5"><output></output></label>
+          <label>Blend <select name="blend">
+            <option value="auto">Auto</option><option value="screen">Screen</option>
+            <option value="multiply">Multiply</option><option value="normal">None</option>
+          </select></label>
+        </fieldset>
+        <fieldset>
+          <legend>Colours</legend>
+          <label>Palette <select name="palette"></select></label>
+          <div class="swatches">
+            <label>Background <input name="bg" type="color"></label>
+            <label>Text <input name="fg" type="color"></label>
+            <label>Accent A <input name="a" type="color"></label>
+            <label>Accent B <input name="b" type="color"></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Export</legend>
+          <label class="check"><input name="withBg" type="checkbox"> Include background</label>
+          <div class="buttons">
+            <button type="button" id="dl-svg">Download SVG</button>
+            <button type="button" id="dl-png">Download PNG</button>
+            <button type="button" id="dl-mark">Download icon</button>
+            <button type="button" id="copy-link">Copy link</button>
+            <button type="button" id="copy-settings">Copy settings</button>
+          </div>
+          <p id="toast" class="hint" aria-live="polite"></p>
+        </fieldset>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

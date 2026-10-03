@@ -1,7 +1,6 @@
 // EPPING Logo Lab: renders the wordmark from real font outlines (opentype.js), so exports are clean path SVGs.
 import { parse } from 'https://cdn.jsdelivr.net/npm/opentype.js@2.0.0/dist/opentype.min.mjs';
 import { G_NAMES, STYLES, lum, wordmark, mark, mix } from './render.js';
-import { REPLAY_NAMES } from './glyphs-replay.js';
 import { instagram } from './ig.js';
 
 const FONTS = {
@@ -65,9 +64,8 @@ function groups() {
   ].map((o) => ({ ...BASE, ...o }));
   const F = Object.entries(FONTS).map(([font, [, ws]]) => ({ ...BASE, font, weight: ws.at(-1) }));
   const W = [300, 500, 700, 900].map((weight) => ({ ...BASE, weight }));
-  const G = PALETTES.slice(0, 2).flatMap((p) => Object.keys(G_NAMES).slice(0, 6).map((g) => ({ ...BASE, ...pal(p), g })));
-  const R = LIKED.flatMap((i) => Object.keys(G_NAMES).slice(6).map((g) => ({ ...BASE, ...pal(PALETTES[i]), g })));
-  return [['Replay G (Sunset rave, Current, Gold rush)', 'R', R], ['G options (Current + Acid)', 'G', G], ['Palettes', 'P', P], ['Styles', 'S', S], ['Fonts', 'F', F], ['Unbounded weights', 'W', W]];
+  const G = PALETTES.slice(0, 2).flatMap((p) => Object.keys(G_NAMES).map((g) => ({ ...BASE, ...pal(p), g })));
+  return [['G options (Current + Acid)', 'G', G], ['Palettes', 'P', P], ['Styles', 'S', S], ['Fonts', 'F', F], ['Unbounded weights', 'W', W]];
 }
 
 function shuffled(n = 12) {
@@ -265,7 +263,7 @@ async function drawIg() {
   $('ig-sets').innerHTML = '';
   for (const i of LIKED) {
     const s = { ...state, ...pal(PALETTES[i]) }, key = `p${i}`, posts = instagram(F, s, key);
-    const letter = REPLAY_NAMES[s.g] ? 'G' : 'E', slugP = PALETTES[i][0].toLowerCase().replace(/\W+/g, '-');
+    const letter = 'E', slugP = PALETTES[i][0].toLowerCase().replace(/\W+/g, '-');
     const set = document.createElement('div');
     set.className = 'ig-set';
     set.innerHTML = `<h2>${PALETTES[i][0]}</h2><div class="ig-row">

@@ -1,9 +1,8 @@
 // Pure rendering: wordmark + icon SVGs from font outlines. Shared by the lab UI and the Instagram mockups.
 import { G_SHAPES } from './glyphs-g.js';
-import { REPLAY_SHAPES, REPLAY_NAMES } from './glyphs-replay.js';
 
-export const G_NAMES = { orig: 'G1 Original', clean: 'G2 Clean spur', bar: 'G3 No spur', longbar: 'G4 No spur, long bar', highbar: 'G5 High bar', lowbar: 'G6 Low bar, wide mouth', ...REPLAY_NAMES };
-const SHAPES = { ...G_SHAPES, ...REPLAY_SHAPES };
+export const G_NAMES = { orig: 'G1 Original', clean: 'G2 Clean spur', bar: 'G3 No spur', longbar: 'G4 No spur, long bar', highbar: 'G5 High bar', lowbar: 'G6 Low bar, wide mouth' };
+const SHAPES = G_SHAPES;
 export const gApplies = (s) => s.font === 'unbounded' && +s.weight === 800 && s.g !== 'orig' && SHAPES[s.g];
 
 export const STYLES = { split: 'RGB split', chroma: 'Split, no top layer', solid: 'Solid', outline: 'Outline sticker', stack: 'Stacked echo', gradient: 'Gradient' };

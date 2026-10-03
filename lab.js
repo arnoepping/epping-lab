@@ -1,6 +1,8 @@
 // EPPING Logo Lab: renders the wordmark from real font outlines (opentype.js), so exports are clean path SVGs.
 import { parse } from 'https://cdn.jsdelivr.net/npm/opentype.js@2.0.0/dist/opentype.min.mjs';
-import { G_SHAPES } from './glyphs-g.js';
+import { G_NAMES, STYLES, lum, wordmark, mark, mix } from './render.js';
+import { REPLAY_NAMES } from './glyphs-replay.js';
+import { instagram } from './ig.js';
 
 const FONTS = {
   unbounded: ['Unbounded', [200, 300, 400, 500, 600, 700, 800, 900]],
@@ -19,7 +21,7 @@ const FONTS = {
 };
 
 // [name, bg, text, accent A, accent B]
-const PALETTES = [
+export const PALETTES = [
   ['Current (pink/cyan)', '#0A0A10', '#EDEDF3', '#00E5FF', '#FF2BD6'],
   ['Acid', '#0B0B0B', '#F4F4F0', '#C6FF00', '#FF2BD6'],
   ['Sunset rave', '#12061A', '#FFF4E8', '#FF4D00', '#FF2BD6'],
@@ -32,13 +34,12 @@ const PALETTES = [
   ['Hot pink', '#FF2BD6', '#0A0A10', '#00E5FF', '#FFFFFF'],
 ];
 
-const G_NAMES = { orig: 'G1 Original', clean: 'G2 Clean spur', bar: 'G3 No spur', longbar: 'G4 No spur, long bar', highbar: 'G5 High bar', lowbar: 'G6 Low bar, wide mouth' };
-const gApplies = (s) => s.font === 'unbounded' && +s.weight === 800 && s.g !== 'orig' && G_SHAPES[s.g];
-
-const STYLES = { split: 'RGB split', chroma: 'Split, no top layer', solid: 'Solid', outline: 'Outline sticker', stack: 'Stacked echo', gradient: 'Gradient' };
+// Palettes picked so far: Sunset rave, Current, Gold rush.
+const LIKED = [2, 0, 4];
 
 const BASE = { text: 'EPPING', font: 'unbounded', weight: 800, spacing: -0.02, skew: 0, fx: 'split', offset: 3, angle: 0, blend: 'auto',
-  bg: '#0A0A10', fg: '#EDEDF3', a: '#00E5FF', b: '#FF2BD6', withBg: false, g: 'orig' };
+  bg: '#0A0A10', fg: '#EDEDF3', a: '#00E5FF', b: '#FF2BD6', withBg: false, g: 'bar' };
+
 
 // ---------- fonts ----------
 const cache = new Map();
@@ -48,103 +49,6 @@ function loadFont(key, weight) {
   const url = `https://cdn.jsdelivr.net/npm/@fontsource/${key}@5/files/${key}-latin-${w}-normal.woff`;
   if (!cache.has(url)) cache.set(url, fetch(url).then((r) => r.arrayBuffer()).then(parse));
   return cache.get(url);
-}
-
-// ---------- rendering ----------
-const r2 = (n) => Math.round(n * 100) / 100;
-const lum = (hex) => { const n = parseInt(hex.slice(1), 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; };
-let uid = 0;
-
-function outline(font, s, text = s.text, size = 100) {
-  const p = { commands: [] };
-  const swapG = gApplies(s);
-  font.forEachGlyph(text || ' ', 0, 0, size, { letterSpacing: +s.spacing }, (glyph, gx, gy, gs) => {
-    if (swapG && glyph.unicode === 71) {
-      const k = gs / font.unitsPerEm;
-      for (const [type, ...v] of G_SHAPES[s.g]) {
-        const pt = (i) => [gx + v[i] * k, gy + v[i + 1] * k];
-        if (type === 'Z') p.commands.push({ type });
-        else if (type === 'C') { const [x1, y1] = pt(0), [x2, y2] = pt(2), [x, y] = pt(4); p.commands.push({ type, x1, y1, x2, y2, x, y }); }
-        else { const [x, y] = pt(0); p.commands.push({ type, x, y }); }
-      }
-    } else p.commands.push(...glyph.getPath(gx, gy, gs).commands.map((c) => ({ ...c })));
-  });
-  if (+s.skew) {
-    const t = Math.tan((s.skew * Math.PI) / 180);
-    for (const c of p.commands) for (const [x, y] of [['x', 'y'], ['x1', 'y1'], ['x2', 'y2']]) if (c[x] !== undefined) c[x] -= t * c[y];
-  }
-  return { d: pathData(p.commands), box: bbox(p.commands) };
-}
-
-// Bounding box from points incl. control points: close enough for framing.
-function bbox(cmds) {
-  const b = { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity };
-  for (const c of cmds) for (const [x, y] of [['x', 'y'], ['x1', 'y1'], ['x2', 'y2']]) if (c[x] !== undefined) {
-    b.x1 = Math.min(b.x1, c[x]); b.x2 = Math.max(b.x2, c[x]); b.y1 = Math.min(b.y1, c[y]); b.y2 = Math.max(b.y2, c[y]);
-  }
-  return b;
-}
-
-// opentype.js 2.0's toPathData emits NaN for some fonts, so serialise ourselves.
-function pathData(cmds) {
-  const n = (v) => r2(v);
-  return cmds.map((c) =>
-    c.type === 'Z' ? 'Z'
-    : c.type === 'Q' ? `Q${n(c.x1)} ${n(c.y1)} ${n(c.x)} ${n(c.y)}`
-    : c.type === 'C' ? `C${n(c.x1)} ${n(c.y1)} ${n(c.x2)} ${n(c.y2)} ${n(c.x)} ${n(c.y)}`
-    : `${c.type}${n(c.x)} ${n(c.y)}`).join('');
-}
-
-function layers(s, dx, dy) {
-  const blend = s.blend === 'auto' ? (lum(s.bg) < 0.5 ? 'screen' : 'multiply') : s.blend;
-  const bl = blend === 'normal' ? '' : blend;
-  switch (s.fx) {
-    case 'chroma': return [{ fill: s.a, dx: -dx, dy: -dy, bl }, { fill: s.b, dx, dy, bl }];
-    case 'solid': return [{ fill: s.fg }];
-    case 'outline': return [{ fill: s.b, dx, dy }, { fill: s.bg, stroke: s.fg }];
-    case 'stack': return [{ fill: s.a, dx: 2 * dx, dy: 2 * dy }, { fill: s.b, dx, dy }, { fill: s.fg }];
-    case 'gradient': return [{ fill: s.a, dx: -dx, dy: -dy, bl }, { fill: 'GRAD' }];
-    default: return [{ fill: s.a, dx: -dx, dy: -dy, bl }, { fill: s.b, dx, dy, bl }, { fill: s.fg }];
-  }
-}
-
-function pathEl(d, l, gid, sw) {
-  const fill = l.fill === 'GRAD' ? `url(#${gid})` : l.fill;
-  let a = `d="${d}" fill="${fill}"`;
-  if (l.stroke) a += ` stroke="${l.stroke}" stroke-width="${sw}" stroke-linejoin="round"`;
-  if (l.dx || l.dy) a += ` transform="translate(${r2(l.dx || 0)} ${r2(l.dy || 0)})"`;
-  if (l.bl) a += ` style="mix-blend-mode:${l.bl}"`;
-  return `<path ${a}/>`;
-}
-
-/** Wordmark SVG. bg: draw background rect. */
-function wordmark(font, s, bg = true) {
-  const { d, box } = outline(font, s);
-  const cap = box.y2 - box.y1 || 1;
-  const off = (s.offset / 100) * cap, rad = (s.angle * Math.PI) / 180;
-  const dx = r2(Math.cos(rad) * off), dy = r2(Math.sin(rad) * off);
-  const k = s.fx === 'stack' ? 2 : 1, sw = r2(cap * 0.035), pad = 4 + (s.fx === 'outline' ? sw : 0);
-  const ex = Math.abs(dx) * k + pad, ey = Math.abs(dy) * k + pad;
-  const vb = [box.x1 - ex, box.y1 - ey, box.x2 - box.x1 + 2 * ex, cap + 2 * ey].map(r2);
-  return svgDoc(vb, s, bg, (gid) => layers(s, dx, dy).map((l) => pathEl(d, l, gid, sw)).join(''));
-}
-
-/** Square icon: first letter, centered, always with background. */
-function mark(font, s) {
-  const letter = (s.text || 'E').trim()[0] || 'E';
-  const { d, box } = outline(font, s, letter, 46);
-  const cx = (box.x1 + box.x2) / 2, cy = (box.y1 + box.y2) / 2, cap = box.y2 - box.y1;
-  const off = (s.offset / 100) * cap, rad = (s.angle * Math.PI) / 180;
-  const dx = r2(Math.cos(rad) * off * 1.4), dy = r2(Math.sin(rad) * off * 1.4);
-  return svgDoc([0, 0, 64, 64], s, true, (gid) =>
-    `<g transform="translate(${r2(32 - cx)} ${r2(32 - cy)})">${layers(s, dx, dy).map((l) => pathEl(d, l, gid, r2(cap * 0.05))).join('')}</g>`, 12);
-}
-
-function svgDoc(vb, s, bg, body, rx = 0) {
-  const gid = `g${++uid}`;
-  const defs = s.fx === 'gradient' ? `<defs><linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${s.a}"/><stop offset="1" stop-color="${s.b}"/></linearGradient></defs>` : '';
-  const rect = bg ? `<rect x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}" rx="${rx}" fill="${s.bg}"/>` : '';
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb.join(' ')}" role="img" aria-label="${s.text}" style="isolation:isolate">${defs}${rect}${body(gid)}</svg>`;
 }
 
 // ---------- gallery ----------
@@ -161,8 +65,9 @@ function groups() {
   ].map((o) => ({ ...BASE, ...o }));
   const F = Object.entries(FONTS).map(([font, [, ws]]) => ({ ...BASE, font, weight: ws.at(-1) }));
   const W = [300, 500, 700, 900].map((weight) => ({ ...BASE, weight }));
-  const G = PALETTES.slice(0, 2).flatMap((p) => Object.keys(G_NAMES).map((g) => ({ ...BASE, ...pal(p), g })));
-  return [['G options (Current + Acid)', 'G', G], ['Palettes', 'P', P], ['Styles', 'S', S], ['Fonts', 'F', F], ['Unbounded weights', 'W', W]];
+  const G = PALETTES.slice(0, 2).flatMap((p) => Object.keys(G_NAMES).slice(0, 6).map((g) => ({ ...BASE, ...pal(p), g })));
+  const R = LIKED.flatMap((i) => Object.keys(G_NAMES).slice(6).map((g) => ({ ...BASE, ...pal(PALETTES[i]), g })));
+  return [['Replay G (Sunset rave, Current, Gold rush)', 'R', R], ['G options (Current + Acid)', 'G', G], ['Palettes', 'P', P], ['Styles', 'S', S], ['Fonts', 'F', F], ['Unbounded weights', 'W', W]];
 }
 
 function shuffled(n = 12) {
@@ -271,32 +176,32 @@ const svgBlob = (svg) => new Blob([svg], { type: 'image/svg+xml' });
 
 $('dl-svg').onclick = () => save(svgBlob(wordmark(font, state, state.withBg)), slug() + '.svg');
 $('dl-mark').onclick = () => save(svgBlob(mark(font, state)), slug() + '-icon.svg');
-$('dl-png').onclick = () => {
-  const svg = wordmark(font, state, state.withBg);
+function savePng(svg, W, name) {
   const [, , w, h] = svg.match(/viewBox="([^"]+)"/)[1].split(' ').map(Number);
-  const img = new Image(), W = 3000, H = Math.round((W * h) / w);
+  const img = new Image(), H = Math.round((W * h) / w);
   img.onload = () => {
     const c = Object.assign(document.createElement('canvas'), { width: W, height: H });
     c.getContext('2d').drawImage(img, 0, 0, W, H);
-    c.toBlob((b) => save(b, slug() + '.png'));
+    c.toBlob((b) => save(b, name));
   };
   img.src = URL.createObjectURL(svgBlob(svg.replace('<svg ', `<svg width="${W}" height="${H}" `)));
-};
+}
+$('dl-png').onclick = () => savePng(wordmark(font, state, state.withBg), 3000, slug() + '.png');
 $('copy-link').onclick = () => navigator.clipboard.writeText(location.href).then(() => toast('Link copied'));
 $('copy-settings').onclick = () => navigator.clipboard.writeText(JSON.stringify(state)).then(() => toast('Settings copied: paste them to Claude'));
 
 // ---------- tabs / boot ----------
 function tab(name) {
   for (const b of document.querySelectorAll('.tab')) b.setAttribute('aria-pressed', b.dataset.tab === name);
-  for (const v of ['gallery', 'editor', 'site']) $(v).hidden = name !== v;
+  for (const v of ['gallery', 'editor', 'site', 'ig']) $(v).hidden = name !== v;
   cancelAnimationFrame(raf);
   if (name === 'editor') draw();
   if (name === 'site') { drawSite(); raf = requestAnimationFrame(tunnelFrame); }
+  if (name === 'ig') drawIg();
 }
 for (const b of document.querySelectorAll('.tab')) b.onclick = () => tab(b.dataset.tab);
 
 // ---------- site mockup ----------
-const mix = (h1, h2, t) => '#' + [16, 8, 0].map((sh) => Math.round(((parseInt(h1.slice(1), 16) >> sh) & 255) * (1 - t) + ((parseInt(h2.slice(1), 16) >> sh) & 255) * t).toString(16).padStart(2, '0')).join('');
 let raf = 0;
 const LINES = Array.from({ length: 220 }, () => ({ a: Math.random() * Math.PI * 2, r: 3.2 + Math.random() * 0.6, z: Math.random() * 110, len: 1 + Math.random() * 3, c: Math.random() > 0.5 }));
 
@@ -351,6 +256,41 @@ $('site-palette').innerHTML = `<option value="">Custom</option>` + PALETTES.map(
 $('site-g').innerHTML = Object.entries(G_NAMES).map(([k, n]) => `<option value="${k}">${n}</option>`).join('');
 $('site-palette').onchange = (e) => { if (e.target.value !== '') Object.assign(state, pal(PALETTES[e.target.value])); syncForm(); drawSite(); };
 $('site-g').onchange = (e) => { state.g = e.target.value; syncForm(); drawSite(); };
+
+// ---------- instagram ----------
+async function drawIg() {
+  $('ig-g').value = state.g;
+  const [logoFont, black, mono] = await Promise.all([loadFont(state.font, state.weight), loadFont('unbounded', 800), loadFont('space-grotesk', 500)]);
+  const F = { logo: logoFont, black, mono };
+  $('ig-sets').innerHTML = '';
+  for (const i of LIKED) {
+    const s = { ...state, ...pal(PALETTES[i]) }, key = `p${i}`, posts = instagram(F, s, key);
+    const letter = REPLAY_NAMES[s.g] ? 'G' : 'E', slugP = PALETTES[i][0].toLowerCase().replace(/\W+/g, '-');
+    const set = document.createElement('div');
+    set.className = 'ig-set';
+    set.innerHTML = `<h2>${PALETTES[i][0]}</h2><div class="ig-row">
+      <div class="phone" style="background:${s.bg};color:${s.fg};--muted:${mix(s.bg, s.fg, 0.55)};--line:${mix(s.bg, s.fg, 0.15)}">
+        <div class="ig-head"><div class="ig-avatar" style="border-color:${s.b}">${mark(logoFont, s, letter)}</div>
+          <div><b>eppingmusic</b><div class="ig-stats"><span><b>48</b> posts</span><span><b>2,140</b> followers</span><span><b>312</b> following</span></div></div></div>
+        <div class="ig-bio"><b>EPPING</b><br>DJ &amp; party organiser · Amsterdam<br>Rave weddings · Private events · Epping Presents<br><span style="color:${s.a}">eppingmusic.com</span></div>
+        <div class="ig-hl">${['Weddings', 'Presents', 'Mixes'].map((t) => `<div><span style="border-color:${mix(s.bg, s.fg, 0.3)}">${mark(logoFont, s, letter)}</span>${t}</div>`).join('')}</div>
+        <div class="ig-grid">${posts.filter((p) => p.h === 1350).map((p) => p.svg.replace('<svg ', '<svg preserveAspectRatio="xMidYMid slice" ')).join('')}</div>
+      </div>
+      <div class="ig-posts"></div></div>`;
+    const list = set.querySelector('.ig-posts');
+    for (const p of posts) {
+      const b = document.createElement('button');
+      b.className = 'ig-post' + (p.h > 1350 ? ' story' : '');
+      b.title = 'Download PNG';
+      b.innerHTML = `${p.svg}<span>${p.name} · ${p.w}×${p.h} · PNG ↓</span>`;
+      b.onclick = () => savePng(p.svg, p.w, `epping-${slugP}-${p.id}.png`);
+      list.append(b);
+    }
+    $('ig-sets').append(set);
+  }
+}
+$('ig-g').innerHTML = Object.entries(G_NAMES).map(([k, n]) => `<option value="${k}">${n}</option>`).join('');
+$('ig-g').onchange = (e) => { state.g = e.target.value; syncForm(); drawIg(); };
 
 fillSelects();
 const fromHash = decode(location.hash.slice(1));

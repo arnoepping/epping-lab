@@ -1,5 +1,6 @@
 // EPPING Logo Lab: renders the wordmark from real font outlines (opentype.js), so exports are clean path SVGs.
 import { parse } from 'https://cdn.jsdelivr.net/npm/opentype.js@2.0.0/dist/opentype.min.mjs';
+import { G_SHAPES } from './glyphs-g.js';
 
 const FONTS = {
   unbounded: ['Unbounded', [200, 300, 400, 500, 600, 700, 800, 900]],
@@ -31,10 +32,13 @@ const PALETTES = [
   ['Hot pink', '#FF2BD6', '#0A0A10', '#00E5FF', '#FFFFFF'],
 ];
 
+const G_NAMES = { orig: 'G1 Original', clean: 'G2 Clean spur', bar: 'G3 No spur', longbar: 'G4 No spur, long bar', highbar: 'G5 High bar', lowbar: 'G6 Low bar, wide mouth' };
+const gApplies = (s) => s.font === 'unbounded' && +s.weight === 800 && s.g !== 'orig' && G_SHAPES[s.g];
+
 const STYLES = { split: 'RGB split', chroma: 'Split, no top layer', solid: 'Solid', outline: 'Outline sticker', stack: 'Stacked echo', gradient: 'Gradient' };
 
 const BASE = { text: 'EPPING', font: 'unbounded', weight: 800, spacing: -0.02, skew: 0, fx: 'split', offset: 3, angle: 0, blend: 'auto',
-  bg: '#0A0A10', fg: '#EDEDF3', a: '#00E5FF', b: '#FF2BD6', withBg: false };
+  bg: '#0A0A10', fg: '#EDEDF3', a: '#00E5FF', b: '#FF2BD6', withBg: false, g: 'orig' };
 
 // ---------- fonts ----------
 const cache = new Map();
@@ -52,12 +56,33 @@ const lum = (hex) => { const n = parseInt(hex.slice(1), 16); return (0.299 * (n 
 let uid = 0;
 
 function outline(font, s, text = s.text, size = 100) {
-  const p = font.getPath(text || ' ', 0, 0, size, { letterSpacing: +s.spacing });
+  const p = { commands: [] };
+  const swapG = gApplies(s);
+  font.forEachGlyph(text || ' ', 0, 0, size, { letterSpacing: +s.spacing }, (glyph, gx, gy, gs) => {
+    if (swapG && glyph.unicode === 71) {
+      const k = gs / font.unitsPerEm;
+      for (const [type, ...v] of G_SHAPES[s.g]) {
+        const pt = (i) => [gx + v[i] * k, gy + v[i + 1] * k];
+        if (type === 'Z') p.commands.push({ type });
+        else if (type === 'C') { const [x1, y1] = pt(0), [x2, y2] = pt(2), [x, y] = pt(4); p.commands.push({ type, x1, y1, x2, y2, x, y }); }
+        else { const [x, y] = pt(0); p.commands.push({ type, x, y }); }
+      }
+    } else p.commands.push(...glyph.getPath(gx, gy, gs).commands.map((c) => ({ ...c })));
+  });
   if (+s.skew) {
     const t = Math.tan((s.skew * Math.PI) / 180);
     for (const c of p.commands) for (const [x, y] of [['x', 'y'], ['x1', 'y1'], ['x2', 'y2']]) if (c[x] !== undefined) c[x] -= t * c[y];
   }
-  return { d: pathData(p.commands), box: p.getBoundingBox() };
+  return { d: pathData(p.commands), box: bbox(p.commands) };
+}
+
+// Bounding box from points incl. control points: close enough for framing.
+function bbox(cmds) {
+  const b = { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity };
+  for (const c of cmds) for (const [x, y] of [['x', 'y'], ['x1', 'y1'], ['x2', 'y2']]) if (c[x] !== undefined) {
+    b.x1 = Math.min(b.x1, c[x]); b.x2 = Math.max(b.x2, c[x]); b.y1 = Math.min(b.y1, c[y]); b.y2 = Math.max(b.y2, c[y]);
+  }
+  return b;
 }
 
 // opentype.js 2.0's toPathData emits NaN for some fonts, so serialise ourselves.
@@ -124,7 +149,7 @@ function svgDoc(vb, s, bg, body, rx = 0) {
 
 // ---------- gallery ----------
 const pal = (p) => ({ bg: p[1], fg: p[2], a: p[3], b: p[4] });
-const label = (s) => `${FONTS[s.font][0]} ${s.weight} · ${STYLES[s.fx]} · ${PALETTES.find((p) => p[1] === s.bg && p[3] === s.a)?.[0] ?? 'custom'}`;
+const label = (s) => `${s.font === 'unbounded' && +s.weight === 800 ? G_NAMES[s.g].split(' ')[0] + ' · ' : ''}${FONTS[s.font][0]} ${s.weight} · ${STYLES[s.fx]} · ${PALETTES.find((p) => p[1] === s.bg && p[3] === s.a)?.[0] ?? 'custom'}`;
 
 function groups() {
   const P = PALETTES.map((p) => ({ ...BASE, ...pal(p) }));
@@ -136,7 +161,8 @@ function groups() {
   ].map((o) => ({ ...BASE, ...o }));
   const F = Object.entries(FONTS).map(([font, [, ws]]) => ({ ...BASE, font, weight: ws.at(-1) }));
   const W = [300, 500, 700, 900].map((weight) => ({ ...BASE, weight }));
-  return [['Palettes', 'P', P], ['Styles', 'S', S], ['Fonts', 'F', F], ['Unbounded weights', 'W', W]];
+  const G = PALETTES.slice(0, 2).flatMap((p) => Object.keys(G_NAMES).map((g) => ({ ...BASE, ...pal(p), g })));
+  return [['G options (Current + Acid)', 'G', G], ['Palettes', 'P', P], ['Styles', 'S', S], ['Fonts', 'F', F], ['Unbounded weights', 'W', W]];
 }
 
 function shuffled(n = 12) {
@@ -187,6 +213,7 @@ const $ = (id) => document.getElementById(id);
 function fillSelects() {
   form.font.innerHTML = Object.entries(FONTS).map(([k, [n]]) => `<option value="${k}">${n}</option>`).join('');
   form.fx.innerHTML = Object.entries(STYLES).map(([k, n]) => `<option value="${k}">${n}</option>`).join('');
+  form.g.innerHTML = Object.entries(G_NAMES).map(([k, n]) => `<option value="${k}">${n}</option>`).join('');
   form.palette.innerHTML = `<option value="">Custom</option>` + PALETTES.map((p, i) => `<option value="${i}">${p[0]}</option>`).join('');
 }
 
@@ -261,10 +288,69 @@ $('copy-settings').onclick = () => navigator.clipboard.writeText(JSON.stringify(
 // ---------- tabs / boot ----------
 function tab(name) {
   for (const b of document.querySelectorAll('.tab')) b.setAttribute('aria-pressed', b.dataset.tab === name);
-  $('gallery').hidden = name !== 'gallery';
-  $('editor').hidden = name !== 'editor';
+  for (const v of ['gallery', 'editor', 'site']) $(v).hidden = name !== v;
+  cancelAnimationFrame(raf);
+  if (name === 'editor') draw();
+  if (name === 'site') { drawSite(); raf = requestAnimationFrame(tunnelFrame); }
 }
-for (const b of document.querySelectorAll('.tab')) b.onclick = () => { tab(b.dataset.tab); if (b.dataset.tab === 'editor') draw(); };
+for (const b of document.querySelectorAll('.tab')) b.onclick = () => tab(b.dataset.tab);
+
+// ---------- site mockup ----------
+const mix = (h1, h2, t) => '#' + [16, 8, 0].map((sh) => Math.round(((parseInt(h1.slice(1), 16) >> sh) & 255) * (1 - t) + ((parseInt(h2.slice(1), 16) >> sh) & 255) * t).toString(16).padStart(2, '0')).join('');
+let raf = 0;
+const LINES = Array.from({ length: 220 }, () => ({ a: Math.random() * Math.PI * 2, r: 3.2 + Math.random() * 0.6, z: Math.random() * 110, len: 1 + Math.random() * 3, c: Math.random() > 0.5 }));
+
+async function drawSite() {
+  const v = $('site').style;
+  v.setProperty('--sa', state.a); v.setProperty('--sb', state.b); v.setProperty('--sf', state.fg); v.setProperty('--sbg', state.bg);
+  v.setProperty('--sm', mix(state.bg, state.fg, 0.55)); v.setProperty('--sl', mix(state.bg, state.fg, 0.15));
+  $('site-panel').style.background = mix(state.bg, state.fg, 0.05);
+  $('site-panel').style.color = state.fg;
+  const i = PALETTES.findIndex((p) => p[1] === state.bg && p[2] === state.fg && p[3] === state.a && p[4] === state.b);
+  $('site-palette').value = i < 0 ? '' : i;
+  $('site-g').value = state.g;
+  const f = await loadFont(state.font, state.weight);
+  $('site-logo').innerHTML = wordmark(f, state, false);
+}
+
+function tunnelFrame(t) {
+  const cv = $('tunnel'), ctx = cv.getContext('2d'), dpr = Math.min(devicePixelRatio || 1, 2);
+  const W = cv.clientWidth, H = cv.clientHeight;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = state.bg; ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = lum(state.bg) < 0.5 ? 'lighter' : 'source-over';
+  const cx = W / 2, cy = H / 2, F = Math.max(W, H) * 0.42, travel = (t / 1000) * 3, rot = (t / 1000) * 0.15;
+  const fade = (z) => Math.exp(-((0.022 * z) ** 2));
+  // speed lines
+  ctx.lineWidth = 1;
+  for (const L of LINES) {
+    const z1 = ((L.z - travel) % 110 + 110) % 110 + 0.8, z2 = z1 + L.len;
+    const cs = Math.cos(L.a + rot), sn = Math.sin(L.a + rot);
+    ctx.strokeStyle = L.c ? state.b : state.a; ctx.globalAlpha = 0.5 * fade(z1);
+    ctx.beginPath(); ctx.moveTo(cx + (cs * L.r * F) / z1, cy + (sn * L.r * F) / z1); ctx.lineTo(cx + (cs * L.r * F) / z2, cy + (sn * L.r * F) / z2); ctx.stroke();
+  }
+  // rings, far to near
+  const k = Math.floor(travel / 2), glow = 0.12 + 0.12 * Math.sin((t / 1000) * 4);
+  for (let j = k + 60; j >= k; j--) {
+    const z = j * 2 - travel + 1.2;
+    if (z < 0.6) continue;
+    const r = (4 * F) / z, col = j % 2 ? state.a : state.b, f = fade(z);
+    ctx.strokeStyle = col;
+    ctx.globalAlpha = glow * f; ctx.lineWidth = (0.44 * F) / z;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = f; ctx.lineWidth = (0.1 * F) / z;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  raf = requestAnimationFrame(tunnelFrame);
+}
+
+$('site-palette').innerHTML = `<option value="">Custom</option>` + PALETTES.map((p, i) => `<option value="${i}">${p[0]}</option>`).join('');
+$('site-g').innerHTML = Object.entries(G_NAMES).map(([k, n]) => `<option value="${k}">${n}</option>`).join('');
+$('site-palette').onchange = (e) => { if (e.target.value !== '') Object.assign(state, pal(PALETTES[e.target.value])); syncForm(); drawSite(); };
+$('site-g').onchange = (e) => { state.g = e.target.value; syncForm(); drawSite(); };
 
 fillSelects();
 const fromHash = decode(location.hash.slice(1));

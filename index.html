@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>EPPING Logo Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&display=swap">
   <link rel="stylesheet" href="lab.css">
   <script type="module" src="lab.js"></script>
 </head>
@@ -13,6 +15,7 @@
     <nav>
       <button class="tab" data-tab="gallery" aria-pressed="true">Gallery</button>
       <button class="tab" data-tab="editor" aria-pressed="false">Editor</button>
+      <button class="tab" data-tab="site" aria-pressed="false">Site mockup</button>
     </nav>
   </header>
 
@@ -41,6 +44,7 @@
           <label>Text <input name="text" maxlength="24"></label>
           <label>Font <select name="font"></select></label>
           <label>Weight <select name="weight"></select></label>
+          <label>G shape <select name="g"></select></label>
           <label>Letter spacing <input name="spacing" type="range" min="-0.12" max="0.3" step="0.005"><output></output></label>
           <label>Slant <input name="skew" type="range" min="-20" max="20" step="1"><output></output></label>
         </fieldset>
@@ -77,6 +81,31 @@
           <p id="toast" class="hint" aria-live="polite"></p>
         </fieldset>
       </form>
+    </section>
+    <section id="site" class="view" hidden>
+      <div class="bar">
+        <p class="hint">Rough 2D stand-in for the eppingmusic.com tunnel, using the Editor's logo and colours.</p>
+        <div class="site-tools">
+          <label>Palette <select id="site-palette"></select></label>
+          <label>G <select id="site-g"></select></label>
+        </div>
+      </div>
+      <div class="site" id="site-stage">
+        <canvas id="tunnel"></canvas>
+        <a class="site-skip">SKIP →</a>
+        <div class="site-hero">
+          <p class="site-kicker">DJ · AMSTERDAM</p>
+          <div id="site-logo"></div>
+          <p class="site-tag">Rave weddings. Private parties.<br>Our own nights.</p>
+          <p class="site-kicker">SCROLL TO ENTER</p>
+        </div>
+      </div>
+      <div class="site-panel" id="site-panel">
+        <p class="site-kicker">FLOOR 01</p>
+        <h2>Rave Wedding</h2>
+        <p>Your wedding, but make it a rave. Live DJ set, light show and the dancefloor your friends will talk about.</p>
+        <div class="site-btns"><a class="btn-a">Book a date</a><a class="btn-b">Listen</a></div>
+      </div>
     </section>
   </main>
 </body>

@@ -55,10 +55,31 @@ input[type=color] { width: 44px; height: 30px; padding: 0; border: 1px solid var
 .check { display: flex !important; gap: 8px; }
 .buttons { display: flex; flex-wrap: wrap; gap: 6px; }
 
+/* site mockup */
+.site-tools { display: flex; flex-wrap: wrap; gap: 10px; max-width: 100%; }
+.site-tools label { display: flex; gap: 6px; align-items: center; color: var(--muted); }
+.site-tools select { width: auto; max-width: 60vw; }
+.site { position: relative; height: min(78vh, 760px); border-radius: 12px; overflow: hidden; border: 1px solid var(--line); --mono: ui-monospace, "JetBrains Mono", Menlo, monospace; }
+.site canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.site-skip { position: absolute; top: 14px; right: 18px; font: 500 12px var(--mono); letter-spacing: .15em; color: var(--sa); }
+.site-hero { position: absolute; inset: 0; display: grid; align-content: center; justify-items: start; padding: 0 12%; gap: 14px; }
+.site-hero #site-logo { width: min(100%, 900px); }
+.site-hero #site-logo svg { width: 100%; height: auto; display: block; }
+.site-kicker { margin: 0; font: 500 12px var(--mono); letter-spacing: .2em; color: var(--sm); }
+.site-tag { margin: 0; font: 700 clamp(18px, 2.4vw, 30px)/1.15 "Unbounded", system-ui, sans-serif; color: var(--sf); }
+.site-panel { margin-top: 12px; padding: 24px; border-radius: 12px; border: 1px solid var(--sl); display: grid; gap: 10px; max-width: 560px; }
+.site-panel h2 { margin: 0; font: 800 28px "Unbounded", system-ui, sans-serif; }
+.site-panel p { margin: 0; }
+.site-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.site-btns a { padding: 10px 16px; border-radius: 999px; font-weight: 700; }
+.btn-a { background: var(--sb); color: var(--sbg); }
+.btn-b { border: 1.5px solid var(--sa); color: var(--sa); }
+
 @media (max-width: 860px) {
   #editor { grid-template-columns: 1fr; }
   .stage { position: static; }
   .minis { grid-template-columns: 72px 1fr; }
   .mini { height: 72px; }
   #inverse { display: none; }
+  .site-hero { padding: 0 6%; }
 }

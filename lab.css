@@ -112,3 +112,11 @@ input[type=color] { width: 44px; height: 30px; padding: 0; border: 1px solid var
   .ig-row { grid-template-columns: 1fr; }
   .phone { max-width: 400px; }
 }
+
+/* glitch tab */
+.glitch-tools { display: flex; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; font-size: 13px; color: var(--muted); }
+.glitch-grid { grid-template-columns: repeat(auto-fill, minmax(min(var(--gw, 420px), 100%), 1fr)); }
+.gcard .art { aspect-ratio: 16 / 6; padding: 6%; }
+.gcard .meta { align-items: baseline; }
+.gcard .meta span { flex: 1; }
+.gcard .gdl { color: var(--text); font-size: 12px; }

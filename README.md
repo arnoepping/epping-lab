@@ -10,6 +10,7 @@ Fonts come from Fontsource on jsdelivr and are outlined with opentype.js, so exp
 - `media/` (git-ignored, local only): the user's photos and reels. The public site shows the posts without photos.
 - Site mockup: 2D stand-in for the eppingmusic.com tunnel, using the editor's logo + colours.
 - `glyphs-g.js`: alternative G outlines for Unbounded 800 (paper.js boolean ops on the font's G/O; generator not kept).
+- Glitch: the final logo (Unbounded 800, G3, Sunset rave) in 19 glitch variants (GL01–GL19: split amount/direction, slices, only-the-G, scanlines, blocks, echo, 4 animated loops), SVG download each; direct link `#glitch`. Built in `glitch.js`.
 - Editor: live controls, settings kept in the URL hash (Copy link to share), and SVG/PNG/icon export.
 - Local: `python3 -m http.server` and open http://localhost:8000.
 - `render.js`: pure wordmark/icon/text-to-path rendering, shared by the lab and the Instagram mockups.

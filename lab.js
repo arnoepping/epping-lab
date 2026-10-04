@@ -2,6 +2,7 @@
 import { parse } from 'https://cdn.jsdelivr.net/npm/opentype.js@2.0.0/dist/opentype.min.mjs';
 import { G_NAMES, STYLES, lum, wordmark, mark, mix } from './render.js';
 import { instagram } from './ig.js';
+import { VARIANTS, glitchSVG } from './glitch.js';
 
 const FONTS = {
   unbounded: ['Unbounded', [200, 300, 400, 500, 600, 700, 800, 900]],
@@ -191,11 +192,12 @@ $('copy-settings').onclick = () => navigator.clipboard.writeText(JSON.stringify(
 // ---------- tabs / boot ----------
 function tab(name) {
   for (const b of document.querySelectorAll('.tab')) b.setAttribute('aria-pressed', b.dataset.tab === name);
-  for (const v of ['gallery', 'editor', 'site', 'ig']) $(v).hidden = name !== v;
+  for (const v of ['gallery', 'editor', 'site', 'ig', 'glitch']) $(v).hidden = name !== v;
   cancelAnimationFrame(raf);
   if (name === 'editor') draw();
   if (name === 'site') { drawSite(); raf = requestAnimationFrame(tunnelFrame); }
   if (name === 'ig') drawIg();
+  if (name === 'glitch') drawGlitch();
 }
 for (const b of document.querySelectorAll('.tab')) b.onclick = () => tab(b.dataset.tab);
 
@@ -311,3 +313,19 @@ fillSelects();
 const fromHash = decode(location.hash.slice(1));
 if (fromHash) openEditor(fromHash); else { syncForm(); }
 renderGallery();
+
+// ---------- glitch ----------
+let glitchDone = false;
+async function drawGlitch() {
+  const f = await loadFont('unbounded', 800), grid = $('glitch-grid'), bg = $('glitch-bg').value;
+  grid.style.setProperty('--gw', $('glitch-size').value + 'px');
+  grid.innerHTML = '';
+  for (const [id, name, note, v] of VARIANTS) {
+    const el = document.createElement('div'); el.className = 'card gcard';
+    el.innerHTML = `<div class="art" style="background:${bg}">${glitchSVG(f, v, false)}</div><div class="meta"><b>${id}</b><span><b>${name}</b> · ${note}</span><a href="#" class="gdl">SVG</a></div>`;
+    el.querySelector('.gdl').onclick = (e) => { e.preventDefault(); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([glitchSVG(f, v, false)], { type: 'image/svg+xml' })); a.download = `epping-${id.toLowerCase()}-${name.toLowerCase().replace(/[^a-z]+/g, '-')}.svg`; a.click(); };
+    grid.append(el);
+  }
+  if (!glitchDone) { glitchDone = true; $('glitch-bg').onchange = drawGlitch; $('glitch-size').onchange = drawGlitch; }
+}
+if (location.hash === '#glitch') tab('glitch'); // direct link to this tab

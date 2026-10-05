@@ -18,6 +18,7 @@
       <button class="tab" data-tab="site" aria-pressed="false">Site mockup</button>
       <button class="tab" data-tab="ig" aria-pressed="false">Instagram</button>
       <button class="tab" data-tab="glitch" aria-pressed="false">Glitch</button>
+      <button class="tab" data-tab="white" aria-pressed="false">On white</button>
     </nav>
   </header>
 
@@ -124,6 +125,13 @@
       <div class="glitch-tools"><label>Background <select id="glitch-bg"><option value="#12061A">Sunset rave dark</option><option value="#000000">Black</option><option value="#FFF4E8">Cream</option></select></label>
         <label>Size <select id="glitch-size"><option value="260">Small</option><option value="420" selected>Medium</option><option value="900">Large</option></select></label></div>
       <div id="glitch-grid" class="grid glitch-grid"></div>
+    </section>
+    <section id="white" class="view" hidden>
+      <p class="hint">The same logo and glitch variants on a light background with black letters (for print, invites, light pages). Download gives an SVG without background.</p>
+      <div class="glitch-tools"><label>Background <select id="white-bg"><option value="#FFFFFF">White</option><option value="#F4F1EC">Off-white</option><option value="#FFF4E8">Cream</option></select></label>
+        <label>Split colours <select id="white-acc"><option value="color">Orange + pink</option><option value="grey">None: grey only</option></select></label>
+        <label>Size <select id="white-size"><option value="260">Small</option><option value="420" selected>Medium</option><option value="900">Large</option></select></label></div>
+      <div id="white-grid" class="grid glitch-grid"></div>
     </section>
   </main>
 </body>

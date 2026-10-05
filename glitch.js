@@ -3,7 +3,9 @@
 import { outline, r2 } from './render.js';
 
 export const FINAL = { text: 'EPPING', font: 'unbounded', weight: 800, spacing: -0.02, skew: 0, g: 'bar',
-  bg: '#12061A', fg: '#FFF4E8', a: '#FF4D00', b: '#FF2BD6' };
+  bg: '#12061A', fg: '#FFF4E8', a: '#FF4D00', b: '#FF2BD6', blend: 'screen' };
+// on white: black letters; the colour layers multiply instead of screen so they stay visible on a light background
+export const ON_WHITE = { ...FINAL, bg: '#FFFFFF', fg: '#0A0A0A', blend: 'multiply' };
 
 // seeded random, so a variant always looks the same
 const rng = (seed) => () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
@@ -37,8 +39,8 @@ const layerPaths = (d, s, dx, dy, cls = '') => {
   if (!dx && !dy) return `<path d="${d}" fill="${s.fg}"/>`;
   // animated layers: the CSS animation moves the wrapper, the path keeps its resting offset
   const L = (c, fill, x, y) => cls
-    ? `<g class="${cls}${c}" style="mix-blend-mode:screen"><path d="${d}" fill="${fill}"${tr(x, y)}/></g>`
-    : `<path d="${d}" fill="${fill}"${tr(x, y)} style="mix-blend-mode:screen"/>`;
+    ? `<g class="${cls}${c}" style="mix-blend-mode:${s.blend}"><path d="${d}" fill="${fill}"${tr(x, y)}/></g>`
+    : `<path d="${d}" fill="${fill}"${tr(x, y)} style="mix-blend-mode:${s.blend}"/>`;
   return L('a', s.a, -dx, -dy) + L('b', s.b, dx, dy) + `<path d="${d}" fill="${s.fg}"/>`;
 };
 
@@ -79,8 +81,8 @@ const ANIM = {
 };
 
 /** One variant as a standalone SVG string. */
-export function glitchSVG(font, v, bg = true) {
-  const s = FINAL, id = ++uid, k = `k${id}`;
+export function glitchSVG(font, v, bg = true, s = FINAL) {
+  const id = ++uid, k = `k${id}`;
   const full = outline(font, s), box = full.box, cap = box.y2 - box.y1;
   const pad = 6 + cap * 0.12 + (v.echo ? cap * 0.35 : 0);
   const vb = [box.x1 - pad, box.y1 - 6 - cap * 0.06, box.x2 - box.x1 + 2 * pad, cap + 12 + cap * 0.12].map(r2);
@@ -102,7 +104,7 @@ export function glitchSVG(font, v, bg = true) {
   if (v.blocks) { // small colour blocks knocked sideways
     const R = rng(11); for (let i = 0; i < v.blocks; i++) {
       const x = box.x1 + R() * (box.x2 - box.x1 - 40), y = box.y1 + R() * cap * 0.9, w = 18 + R() * 50, h = cap * (0.04 + R() * 0.08);
-      art += `<rect x="${r2(x)}" y="${r2(y)}" width="${r2(w)}" height="${r2(h)}" fill="${[s.a, s.b, s.fg][i % 3]}" opacity="${i % 3 === 2 ? 0.9 : 0.85}" style="mix-blend-mode:screen"/>`;
+      art += `<rect x="${r2(x)}" y="${r2(y)}" width="${r2(w)}" height="${r2(h)}" fill="${[s.a, s.b, s.fg][i % 3]}" opacity="${i % 3 === 2 ? 0.9 : 0.85}" style="mix-blend-mode:${s.blend}"/>`;
     }
   }
   const style = v.anim ? `<style>${ANIM[v.anim](k)}@media (prefers-reduced-motion:reduce){*{animation:none!important}}</style>` : '';

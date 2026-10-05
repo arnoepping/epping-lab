@@ -192,13 +192,14 @@ $('copy-settings').onclick = () => navigator.clipboard.writeText(JSON.stringify(
 // ---------- tabs / boot ----------
 function tab(name) {
   for (const b of document.querySelectorAll('.tab')) b.setAttribute('aria-pressed', b.dataset.tab === name);
-  for (const v of ['gallery', 'editor', 'site', 'ig', 'glitch', 'white']) $(v).hidden = name !== v;
+  for (const v of ['gallery', 'editor', 'site', 'ig', 'glitch', 'white', 'colour']) $(v).hidden = name !== v;
   cancelAnimationFrame(raf);
   if (name === 'editor') draw();
   if (name === 'site') { drawSite(); raf = requestAnimationFrame(tunnelFrame); }
   if (name === 'ig') drawIg();
   if (name === 'glitch') drawGlitch();
   if (name === 'white') drawWhite();
+  if (name === 'colour') drawColour();
 }
 for (const b of document.querySelectorAll('.tab')) b.onclick = () => tab(b.dataset.tab);
 
@@ -315,6 +316,50 @@ const fromHash = decode(location.hash.slice(1));
 if (fromHash) openEditor(fromHash); else { syncForm(); }
 renderGallery();
 
+// ---------- on colour: the logo on the Sunset rave colours ----------
+const SR = { dark: '#12061A', cream: '#FFF4E8', orange: '#FF4D00', pink: '#FF2BD6' };
+const COLOUR_BGS = [
+  ['Orange', SR.orange, SR.pink],
+  ['Pink', SR.pink, SR.orange],
+  ['Orange → pink gradient', `linear-gradient(90deg, ${SR.orange}, ${SR.pink})`, null],
+  ['Pink → orange, diagonal', `linear-gradient(135deg, ${SR.pink}, ${SR.orange})`, null],
+  ['Cream', SR.cream, null],
+];
+// [id, name, note, fg, a, b, split]; `other` = the accent that isn't the background
+const treatments = (other) => [
+  ['1', 'Dark letters, cream + accent split', 'The split keeps both edges visible', SR.dark, SR.cream, other, 3],
+  ['2', 'Cream letters, dark + accent split', 'Light letters, a dark shadow edge', SR.cream, SR.dark, other, 3],
+  ['3', 'Dark letters, wide split', 'Same as 1 at 6%: more colour', SR.dark, SR.cream, other, 6],
+  ['4', 'Dark solid', 'No split: the calmest', SR.dark, SR.dark, SR.dark, 0],
+  ['5', 'Cream solid', 'No split, light letters', SR.cream, SR.cream, SR.cream, 0],
+];
+// my pick per background: dark letters keep the most contrast on orange, pink and the gradients; the split stays in the colour(s) not used by the background
+const PICKS = { C1: '1', C2: '1', C3: '1', C4: '1', C5: '1' };
+async function drawColour() {
+  const f = await loadFont('unbounded', 800), root = $('colour-groups');
+  root.innerHTML = '';
+  COLOUR_BGS.forEach(([bgName, bg, acc], gi) => {
+    // on a gradient both accents are already in the background: split in orange + pink as on dark, they show where they contrast
+    const other = acc || null;
+    const list = bgName === 'Cream'
+      ? [['1', 'Dark letters, orange + pink split', 'Like on white, but warmer', SR.dark, SR.orange, SR.pink, 3], ['2', 'Dark letters, wide split', '6%', SR.dark, SR.orange, SR.pink, 6], ['3', 'Orange letters, dark + pink split', 'Colour as the main', SR.orange, SR.dark, SR.pink, 3], ['4', 'Dark solid', 'No split', SR.dark, SR.dark, SR.dark, 0]]
+      : other ? treatments(other)
+      : [['1', 'Dark letters, cream + dark-pink split', 'Edges in cream and a deeper tone', SR.dark, SR.cream, '#7A0A5E', 3], ['2', 'Cream letters, dark split', 'Light letters with a dark echo', SR.cream, SR.dark, '#7A0A5E', 3], ['3', 'Dark solid', 'No split', SR.dark, SR.dark, SR.dark, 0], ['4', 'Cream solid', 'No split', SR.cream, SR.cream, SR.cream, 0]];
+    const wrap = document.createElement('div'); wrap.className = 'group';
+    wrap.innerHTML = `<h2>${bgName}</h2><div class="grid glitch-grid"></div>`;
+    const grid = wrap.lastChild;
+    for (const [n, name, note, fg, a, b, split] of list) {
+      const id = `C${gi + 1}.${n}`, s = { ...FINAL, bg: bg.startsWith('#') ? bg : SR.dark, fg, a, b, blend: 'normal' };
+      const svg = glitchSVG(f, { split }, false, s), star = PICKS[`C${gi + 1}`] === n ? ' ★' : '';
+      const el = document.createElement('div'); el.className = 'card gcard';
+      el.innerHTML = `<div class="art" style="background:${bg}">${svg}</div><div class="meta"><b>${id}${star}</b><span><b>${name}</b> · ${note}</span><a href="#" class="gdl">SVG</a></div>`;
+      el.querySelector('.gdl').onclick = (e) => { e.preventDefault(); const l = document.createElement('a'); l.href = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })); l.download = `epping-${id.toLowerCase().replace('.', '-')}-${bgName.toLowerCase().replace(/[^a-z]+/g, '-')}.svg`; l.click(); };
+      grid.append(el);
+    }
+    root.append(wrap);
+  });
+}
+
 // ---------- glitch + on white ----------
 async function drawVariants(grid, s, size, prefix) {
   const f = await loadFont('unbounded', 800);
@@ -331,4 +376,4 @@ const drawGlitch = () => drawVariants($('glitch-grid'), { ...FINAL, bg: $('glitc
 const drawWhite = () => drawVariants($('white-grid'), { ...ON_WHITE, bg: $('white-bg').value, ...($('white-acc').value === 'grey' ? { a: '#8A8A8A', b: '#C4C4C4' } : {}) }, $('white-size').value, 'WH');
 for (const id of ['glitch-bg', 'glitch-size']) $(id).onchange = drawGlitch;
 for (const id of ['white-bg', 'white-acc', 'white-size']) $(id).onchange = drawWhite;
-if (['#glitch', '#white'].includes(location.hash)) tab(location.hash.slice(1)); // direct links to these tabs
+if (['#glitch', '#white', '#colour'].includes(location.hash)) tab(location.hash.slice(1)); // direct links to these tabs

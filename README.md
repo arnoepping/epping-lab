@@ -12,6 +12,7 @@ Fonts come from Fontsource on jsdelivr and are outlined with opentype.js, so exp
 - `glyphs-g.js`: alternative G outlines for Unbounded 800 (paper.js boolean ops on the font's G/O; generator not kept).
 - Glitch: the final logo (Unbounded 800, G3, Sunset rave) in 19 glitch variants (GL01–GL19: split amount/direction, slices, only-the-G, scanlines, blocks, echo, 4 animated loops), SVG download each; direct link `#glitch`. Built in `glitch.js`.
 - On white: the same 19 variants (WH01–WH19) with black letters on white/off-white/cream; colour layers multiply instead of screen; option for a grey-only split. Direct link `#white`.
+- On colour: the logo on the Sunset rave colours (orange, pink, two gradients, cream), 4–5 treatments each, ★ picks. Rule: dark letters, split in cream + the accent that isn't the background. Direct link `#colour`.
 - Editor: live controls, settings kept in the URL hash (Copy link to share), and SVG/PNG/icon export.
 - Local: `python3 -m http.server` and open http://localhost:8000.
 - `render.js`: pure wordmark/icon/text-to-path rendering, shared by the lab and the Instagram mockups.

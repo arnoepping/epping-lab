@@ -1,7 +1,7 @@
 const paper = require('paper'); paper.setup(new paper.Size(2000, 2000));
-const { parse } = require('/Users/arnoepping/Documents/GitHub/EPPING/node_modules/opentype.js/dist/opentype.js');
+const { parse } = require('/Users/arnoepping/Vibe Code/EPPING/node_modules/opentype.js/dist/opentype.js');
 const fs = require('fs');
-const b = fs.readFileSync('/Users/arnoepping/Documents/GitHub/EPPING/node_modules/@fontsource/unbounded/files/unbounded-latin-800-normal.woff');
+const b = fs.readFileSync('/Users/arnoepping/Vibe Code/EPPING/node_modules/@fontsource/unbounded/files/unbounded-latin-800-normal.woff');
 const f = parse(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength));
 // glyph -> paper CompoundPath in font units, y down (baseline 0)
 const glyph = (ch, sx = (x) => x) => {
